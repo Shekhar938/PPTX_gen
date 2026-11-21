@@ -1,6 +1,6 @@
 # 🎨 Context-Aware Multi-Input PPTX Generator
 
-Transform YouTube videos, PDFs, Word documents, and ideas into stunning, professional PowerPoint presentations using Google Gemini AI.
+Transform YouTube videos, PDFs, Word documents, and ideas into stunning, professional PowerPoint presentations using Google Gemini AI and OpenAi Compitable LLM api.
 
 ## ✨ Features
 
