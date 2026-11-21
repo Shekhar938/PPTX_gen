@@ -88,6 +88,24 @@ PROVIDER_DEFAULTS = {
 }
 
 
+class RobustNamespace(dict):
+    """Execution namespace that automatically evaluates unknown identifier names as strings.
+    For example, if the LLM writes icon=lightbulb or pose=thinking without quotes,
+    it automatically resolves to 'lightbulb' or 'thinking' instead of raising NameError.
+    """
+    def __missing__(self, key):
+        return key
+
+
+# Common visual tokens pre-registered in the namespace
+KNOWN_TOKENS = [
+    "brain", "database", "shield", "lightning", "chart_bar", "target", "star",
+    "arrow_up", "clock", "check_circle", "warning", "lightbulb", "users", "code", "globe",
+    "thinking", "pointing", "celebrating", "confused", "presenting", "reading",
+    "left", "right", "center", "full", "bar", "column", "pie", "line", "area",
+]
+
+
 class UnifiedDirector:
     """Multi-provider AI orchestrator supporting Gemini, OpenRouter, OpenAI, and custom endpoints."""
 
@@ -171,40 +189,70 @@ class UnifiedDirector:
         output_path: str = "output.pptx",
         status_callback=None,
     ) -> dict:
-        """Generate Python slide code and build the presentation using SlideCanvas."""
+        """Generate Python slide code and build the presentation using SlideCanvas.
+        Includes automatic code repair and robust namespace handling for NameErrors.
+        """
         content_prompt = _build_content_prompt(user_prompt, youtube_data, document_data)
 
-        raw_code = self._call_llm(content_prompt, SYSTEM_PROMPT, status_callback=status_callback)
-
-        # Strip markdown fences
-        code = re.sub(r"^```(?:python)?\s*\n", "", raw_code)
-        code = re.sub(r"\n```\s*$", "", code)
-
-        if status_callback:
-            status_callback("🎨 Rendering PowerPoint shapes, bento cards & vector SVGs...")
-
         from .slide_builder import PresentationDeck
-        deck = PresentationDeck(theme=theme)
-        namespace = {"deck": deck, "__builtins__": __builtins__}
 
-        try:
-            exec(code, namespace)
-            saved_path = deck.save(output_path)
-            return {
-                "success": True,
-                "output_path": saved_path,
-                "slide_count": deck.slide_count,
-                "error": None,
-                "code": code,
-            }
-        except Exception as e:
-            return {
-                "success": False,
-                "output_path": None,
-                "slide_count": 0,
-                "error": f"{type(e).__name__}: {e}\n{traceback.format_exc()}",
-                "code": code,
-            }
+        last_error = None
+        code = ""
+
+        # Up to 2 attempts (initial generation + 1 auto-repair if syntax/runtime error occurs)
+        for attempt in range(2):
+            if attempt == 0:
+                raw_code = self._call_llm(content_prompt, SYSTEM_PROMPT, status_callback=status_callback)
+            else:
+                if status_callback:
+                    status_callback("🛠️ Auto-repairing slide code...")
+                repair_prompt = (
+                    f"{content_prompt}\n\n"
+                    f"## CRITICAL ERROR IN PREVIOUS ATTEMPT\n"
+                    f"The code produced this error: {last_error}\n\n"
+                    f"Fix the code and output ONLY valid Python code using the SlideBuilder API."
+                )
+                raw_code = self._call_llm(repair_prompt, SYSTEM_PROMPT, status_callback=status_callback)
+
+            # Strip markdown fences
+            code = re.sub(r"^```(?:python)?\s*\n", "", raw_code)
+            code = re.sub(r"\n```\s*$", "", code)
+
+            if status_callback:
+                status_callback("🎨 Rendering PowerPoint shapes, bento cards & vector SVGs...")
+
+            deck = PresentationDeck(theme=theme)
+            namespace = RobustNamespace({
+                "deck": deck,
+                "PresentationDeck": PresentationDeck,
+                "__builtins__": __builtins__,
+            })
+            for token in KNOWN_TOKENS:
+                namespace[token] = token
+
+            try:
+                exec(code, namespace)
+                saved_path = deck.save(output_path)
+                return {
+                    "success": True,
+                    "output_path": saved_path,
+                    "slide_count": deck.slide_count,
+                    "error": None,
+                    "code": code,
+                }
+            except Exception as e:
+                last_error = f"{type(e).__name__}: {e}"
+                logger.warning("Slide execution attempt %d failed: %s", attempt + 1, last_error)
+                if status_callback:
+                    status_callback(f"⚠️ Code issue: {last_error}. Retrying...")
+
+        return {
+            "success": False,
+            "output_path": None,
+            "slide_count": 0,
+            "error": f"Failed after auto-repair attempt: {last_error}",
+            "code": code,
+        }
 
     def generate_template_slides(
         self,

@@ -1063,13 +1063,34 @@ class PresentationDeck:
         self.prs.slide_height = Inches(self.theme.layout.slide_height)
 
         self._slide_count = 0
+        self._slide_canvases: list[SlideCanvas] = []
 
     def new_slide(self) -> SlideCanvas:
         """Create a new blank slide and return its canvas for composition."""
         slide_layout = self.prs.slide_layouts[6]  # Blank layout
         slide = self.prs.slides.add_slide(slide_layout)
         self._slide_count += 1
-        return SlideCanvas(slide, self.theme, self.prs)
+        canvas = SlideCanvas(slide, self.theme, self.prs)
+        self._slide_canvases.append(canvas)
+        return canvas
+
+    def add_slide(self, *args, **kwargs) -> SlideCanvas:
+        """Alias for new_slide()."""
+        return self.new_slide()
+
+    def get_slide(self, index: int = -1) -> SlideCanvas:
+        """Return the slide canvas at index, or create a new one if empty or out of bounds."""
+        if not self._slide_canvases:
+            return self.new_slide()
+        try:
+            return self._slide_canvases[index]
+        except (IndexError, TypeError):
+            return self.new_slide()
+
+    @property
+    def slides(self) -> list[SlideCanvas]:
+        """Return list of all slide canvases."""
+        return self._slide_canvases
 
     @property
     def slide_count(self) -> int:

@@ -302,11 +302,23 @@ class GeminiDirector:
 
         deck = PresentationDeck(theme=theme)
 
-        # Build execution namespace
-        namespace = {
+        # Build execution namespace with auto-string resolution
+        class RobustNamespace(dict):
+            def __missing__(self, key):
+                return key
+
+        namespace = RobustNamespace({
             "deck": deck,
+            "PresentationDeck": PresentationDeck,
             "__builtins__": __builtins__,
-        }
+        })
+        for token in [
+            "brain", "database", "shield", "lightning", "chart_bar", "target", "star",
+            "arrow_up", "clock", "check_circle", "warning", "lightbulb", "users", "code", "globe",
+            "thinking", "pointing", "celebrating", "confused", "presenting", "reading",
+            "left", "right", "center", "full", "bar", "column", "pie", "line", "area",
+        ]:
+            namespace[token] = token
 
         try:
             exec(code, namespace)
