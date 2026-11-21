@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Head -->
+  <circle cx="94" cy="74" r="28" stroke="#000000" stroke-width="2.5" fill="none"/>
+  <!-- Hair tuft -->
+  <path d="M 94 46 C 97 36 90 34 87 32" stroke="#000000" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <!-- Eyebrows -->
+  <path d="M 84 61 Q 89 57 94 60" stroke="#000000" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <path d="M 102 65 Q 107 66 112 62" stroke="#000000" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <!-- Eyes -->
+  <circle cx="89" cy="69" r="3" fill="#000000"/>
+  <circle cx="107" cy="70" r="2" fill="#000000"/>
+  <!-- Confused wavy mouth -->
+  <path d="M 89 84 Q 94 80 98 84 Q 102 88 107 83" stroke="#000000" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <!-- Torso -->
+  <path d="M 94 102 L 94 142" stroke="#000000" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Left arm shrugging -->
+  <path d="M 94 110 L 66 122 L 52 116" stroke="#000000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M 52 116 L 44 114" stroke="#000000" stroke-width="2" stroke-linecap="round"/>
+  <!-- Right arm scratching head -->
+  <path d="M 94 110 L 128 102 L 124 64 L 106 50" stroke="#000000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M 106 50 C 104 46 100 48 104 53" stroke="#000000" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <!-- Scratch marks -->
+  <path d="M 116 46 L 123 39" stroke="#000000" stroke-width="2" stroke-linecap="round"/>
+  <path d="M 121 52 L 129 47" stroke="#000000" stroke-width="2" stroke-linecap="round"/>
+  <!-- Question mark -->
+  <path d="M 136 26 C 136 17 148 17 148 24 C 148 30 141 33 141 39" stroke="#000000" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <circle cx="141" cy="46" r="2.5" fill="#000000"/>
+  <!-- Legs -->
+  <path d="M 94 142 L 80 180 L 87 182" stroke="#000000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M 94 142 L 108 180 L 101 182" stroke="#000000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

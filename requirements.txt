@@ -1,0 +1,20 @@
+# Core PPTX generation
+python-pptx>=1.0.2
+
+# Document parsers
+pymupdf>=1.25.0
+python-docx>=1.1.0
+
+# YouTube transcript extraction
+youtube-transcript-api>=1.0.0
+
+# Google Gemini AI
+google-genai>=1.14.0
+
+# Web UI
+streamlit>=1.45.0
+
+# Environment & utilities
+python-dotenv>=1.1.0
+Pillow>=11.0.0
+cairosvg>=2.7.0

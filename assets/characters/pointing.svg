@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Head -->
+  <circle cx="78" cy="72" r="28" stroke="#000000" stroke-width="2.5" fill="none"/>
+  <!-- Hair tuft -->
+  <path d="M 78 44 C 81 34 74 32 71 30" stroke="#000000" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <!-- Eyes looking right -->
+  <circle cx="74" cy="69" r="2.5" fill="#000000"/>
+  <circle cx="90" cy="68" r="2.5" fill="#000000"/>
+  <!-- Smile -->
+  <path d="M 76 82 Q 82 86 88 82" stroke="#000000" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <!-- Torso -->
+  <path d="M 78 100 L 78 142" stroke="#000000" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Left arm on hip -->
+  <path d="M 78 112 L 60 124 L 68 136" stroke="#000000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Right arm pointing right -->
+  <path d="M 78 112 L 140 100" stroke="#000000" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <!-- Pointing hand -->
+  <path d="M 140 100 L 168 96" stroke="#000000" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <path d="M 140 100 L 144 91" stroke="#000000" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <path d="M 140 100 C 143 107 151 107 150 100" stroke="#000000" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <!-- Action lines / sparkles near finger -->
+  <path d="M 174 88 L 182 84" stroke="#000000" stroke-width="2" stroke-linecap="round"/>
+  <path d="M 176 96 L 186 96" stroke="#000000" stroke-width="2" stroke-linecap="round"/>
+  <path d="M 174 104 L 182 108" stroke="#000000" stroke-width="2" stroke-linecap="round"/>
+  <!-- Legs -->
+  <path d="M 78 142 L 64 180 L 56 180" stroke="#000000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M 78 142 L 94 180 L 102 180" stroke="#000000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>
