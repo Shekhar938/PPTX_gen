@@ -5,8 +5,11 @@ A Streamlit web application that creates stunning PowerPoint presentations
 from multiple input sources: YouTube videos, PDFs, Word documents, existing
 PPTX files, and custom prompts.
 
-Usage:
-    python3 -m streamlit run app.py
+Supports:
+- Multi-Provider LLMs: Google Gemini, OpenRouter, OpenAI, Groq, Ollama
+- 2 Generation Modes:
+    1. Procedural Canvas: Draws custom layouts with doodle characters & bento cards.
+    2. Template Infill: Populates pre-designed templates from templates/ or user upload.
 """
 
 import os
@@ -25,6 +28,9 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 load_dotenv(PROJECT_ROOT / ".env")
 
+from generator.unified_director import UnifiedDirector, PROVIDER_DEFAULTS
+from generator.template_engine import list_available_templates
+
 # ---------------------------------------------------------------------------
 # Page config
 # ---------------------------------------------------------------------------
@@ -40,7 +46,6 @@ st.set_page_config(
 # ---------------------------------------------------------------------------
 st.markdown("""
 <style>
-    /* Card containers with adaptive styling */
     .section-card {
         background: rgba(255, 255, 255, 0.05);
         border: 1px solid rgba(128, 128, 128, 0.2);
@@ -48,7 +53,6 @@ st.markdown("""
         padding: 20px;
         margin-bottom: 16px;
     }
-    /* Status badges */
     .status-pill {
         display: inline-block;
         padding: 4px 12px;
@@ -61,7 +65,6 @@ st.markdown("""
     .status-info    { background: #1E40AF; color: #DBEAFE; }
     .status-warning { background: #854D0E; color: #FEF9C3; }
     
-    /* Header title */
     .hero {
         text-align: center;
         padding: 10px 0 20px 0;
@@ -80,57 +83,136 @@ st.markdown("""
 
 
 # ---------------------------------------------------------------------------
-# Sidebar: API Key, Theme & Model Configuration
+# Sidebar: AI Provider, Model & Mode Configuration
 # ---------------------------------------------------------------------------
 with st.sidebar:
-    st.markdown("## ⚙️ Configuration")
+    st.markdown("## ⚙️ AI Provider & Settings")
     st.markdown("---")
 
-    # API Key
-    env_key = os.getenv("GEMINI_API_KEY", "")
-    api_key = st.text_input(
-        "🔑 Gemini API Key",
-        value=env_key if env_key and env_key != "YOUR_GEMINI_API_KEY_HERE" else "",
-        type="password",
-        help="Get your key at https://aistudio.google.com/apikey",
-    )
-
-    st.markdown("---")
-
-    # Model selector - gemini-3.5-flash is verified active on this API key
-    model_choice = st.selectbox(
-        "🤖 Gemini Model",
-        options=[
-            "gemini-3.5-flash (Recommended - Fast & Verified)",
-            "gemini-3.5-flash-lite (Ultra Fast)",
-            "gemini-3.8-flash (Latest Preview)",
-        ],
+    # 1. Provider Selector
+    provider_choice = st.selectbox(
+        "🧠 AI Provider",
+        options=["Google Gemini", "OpenRouter", "OpenAI", "Groq / Custom"],
         index=0,
-        help="gemini-3.5-flash is verified active on your API key with fast response times.",
+        help="Select which AI service to use for content synthesis.",
     )
-    # Extract raw model identifier
-    raw_model = model_choice.split(" ")[0]
+
+    # 2. Dynamic API Key and Model Inputs based on Provider
+    base_url = None
+    if provider_choice == "Google Gemini":
+        env_gemini = os.getenv("GEMINI_API_KEY", "")
+        api_key = st.text_input(
+            "🔑 Gemini API Key",
+            value=env_gemini if env_gemini and not env_gemini.startswith("YOUR_") else "",
+            type="password",
+            help="Get your key at https://aistudio.google.com/apikey",
+        )
+        model_choice = st.selectbox(
+            "🤖 Gemini Model",
+            options=["gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.8-flash"],
+            index=0,
+            help="gemini-3.5-flash is fast, reliable, and verified on your key.",
+        )
+
+    elif provider_choice == "OpenRouter":
+        env_or = os.getenv("OPENROUTER_API_KEY", "")
+        api_key = st.text_input(
+            "🔑 OpenRouter API Key",
+            value=env_or if env_or else "",
+            type="password",
+            help="Get your key at https://openrouter.ai/keys",
+        )
+        model_choice = st.selectbox(
+            "🤖 Model",
+            options=[
+                "deepseek/deepseek-chat",
+                "anthropic/claude-3.5-sonnet",
+                "meta-llama/llama-3.3-70b-instruct",
+                "google/gemini-2.0-flash-001",
+            ],
+            index=0,
+        )
+        base_url = "https://openrouter.ai/api/v1"
+
+    elif provider_choice == "OpenAI":
+        env_oai = os.getenv("OPENAI_API_KEY", "")
+        api_key = st.text_input(
+            "🔑 OpenAI API Key",
+            value=env_oai if env_oai else "",
+            type="password",
+            help="Get your key at https://platform.openai.com/api-keys",
+        )
+        model_choice = st.selectbox(
+            "🤖 Model",
+            options=["gpt-4o-mini", "gpt-4o"],
+            index=0,
+        )
+        base_url = "https://api.openai.com/v1"
+
+    else:  # Groq / Custom / Local Ollama
+        env_groq = os.getenv("GROQ_API_KEY", "")
+        base_url = st.text_input(
+            "🌐 Base URL",
+            value="https://api.groq.com/openai/v1",
+            help="OpenAI-compatible endpoint URL (e.g., http://localhost:11434/v1 for Ollama).",
+        )
+        api_key = st.text_input(
+            "🔑 API Key",
+            value=env_groq if env_groq else "",
+            type="password",
+            help="Leave as 'ollama' or any string if using local Ollama.",
+        )
+        model_choice = st.text_input(
+            "🤖 Model Name",
+            value="llama-3.3-70b-versatile",
+            help="Exact model identifier on your provider.",
+        )
 
     st.markdown("---")
 
-    # Theme selector
-    theme_choice = st.selectbox(
-        "🎨 Presentation Theme",
-        options=["Black & White Doodle", "Dark Modern Tech", "Executive Light"],
+    # 3. Generation Mode Selector
+    st.markdown("## 🎨 Presentation Style & Mode")
+    generation_mode = st.radio(
+        "Generation Engine Mode",
+        options=["Procedural Canvas (Dynamic Shapes & Characters)", "Template Infill (Clone .pptx Template)"],
         index=0,
-        help="Visual style and aesthetic for the generated presentation.",
+        help="Procedural draws custom slides from scratch with characters and bento cards. Template Infill clones an existing .pptx design.",
     )
-    theme_map = {
-        "Black & White Doodle": "bw_doodle",
-        "Dark Modern Tech": "dark_modern",
-        "Executive Light": "executive_light",
-    }
-    selected_theme = theme_map[theme_choice]
+
+    if generation_mode.startswith("Procedural"):
+        theme_choice = st.selectbox(
+            "Visual Theme",
+            options=["Black & White Doodle", "Dark Modern Tech", "Executive Light"],
+            index=0,
+        )
+        theme_map = {
+            "Black & White Doodle": "bw_doodle",
+            "Dark Modern Tech": "dark_modern",
+            "Executive Light": "executive_light",
+        }
+        selected_theme = theme_map[theme_choice]
+        selected_template_path = None
+    else:
+        # Template Infill mode: list templates from templates/
+        available_templates = list_available_templates()
+        template_names = [t["name"] for t in available_templates] + ["Upload Custom .pptx Template..."]
+        chosen_tpl_name = st.selectbox("Choose Template from templates/", options=template_names, index=0)
+
+        if chosen_tpl_name == "Upload Custom .pptx Template...":
+            tpl_upload = st.file_uploader("Upload custom .pptx template", type=["pptx"])
+            if tpl_upload:
+                tmp_tpl = tempfile.NamedTemporaryFile(delete=False, suffix=".pptx")
+                tmp_tpl.write(tpl_upload.getvalue())
+                selected_template_path = tmp_tpl.name
+            else:
+                selected_template_path = None
+        else:
+            matching = [t for t in available_templates if t["name"] == chosen_tpl_name]
+            selected_template_path = matching[0]["path"] if matching else None
 
     st.markdown("---")
     st.markdown(
-        "💡 **Tip:** Create a `.env` file in the project folder with:\n"
-        "```bash\nGEMINI_API_KEY=AIza...\n```"
+        "💡 **BYOK Security:** Your API key is stored only in your active browser session memory and is never saved permanently."
     )
 
 
@@ -156,9 +238,9 @@ with col_left:
         "What should this presentation be about?",
         height=120,
         placeholder=(
-            "e.g., Create an 8-slide executive summary focusing on the key "
-            "architectural points and pitfalls discussed in the video. "
-            "Use the doodle character to guide the story."
+            "e.g., Create an executive summary focusing on the key "
+            "architectural insights and takeaways from the input. "
+            "Use the doodle character to explain each concept."
         ),
     )
 
@@ -172,10 +254,10 @@ with col_left:
 with col_right:
     st.markdown("### 📄 Upload Documents")
     uploaded_files = st.file_uploader(
-        "Upload PDF, DOCX, or PPTX files",
+        "Upload PDF, DOCX, or PPTX reference files",
         type=["pdf", "docx", "pptx"],
         accept_multiple_files=True,
-        help="Drag and drop or click to browse. Multiple documents supported.",
+        help="Drag and drop or click to browse. Multiple reference files supported.",
     )
 
     if uploaded_files:
@@ -203,7 +285,7 @@ with generate_col2:
     )
 
 if not api_key:
-    st.info("👈 Enter your Gemini API key in the sidebar to get started.")
+    st.info(f"👈 Enter your {provider_choice} API key in the sidebar to get started.")
 
 # ---------------------------------------------------------------------------
 # Generation Pipeline with Real-Time Live Status
@@ -217,7 +299,10 @@ if generate_btn and api_key:
         st.error("Please provide at least one input: a YouTube link, an uploaded document, or a prompt.")
         st.stop()
 
-    # Create an expandable live status container showing step-by-step progress
+    if generation_mode.startswith("Template") and not selected_template_path:
+        st.error("Please select or upload a valid .pptx template.")
+        st.stop()
+
     with st.status("🚀 Processing inputs and building presentation...", expanded=True) as status_box:
 
         # ---- STEP 1: Parse YouTube transcripts ----
@@ -240,7 +325,7 @@ if generate_btn and api_key:
         # ---- STEP 2: Parse uploaded documents ----
         document_data = []
         if has_docs:
-            status_box.write("📄 **Step 2:** Parsing attached documents...")
+            status_box.write("📄 **Step 2:** Parsing attached reference documents...")
             from parsers.document_parser import parse_document
 
             for uploaded_file in uploaded_files:
@@ -261,30 +346,40 @@ if generate_btn and api_key:
                     if os.path.exists(tmp_path):
                         os.unlink(tmp_path)
 
-        # ---- STEP 3: Synthesize with Gemini & Build Slides ----
-        status_box.write(f"🧠 **Step 3:** Synthesizing content with **{raw_model}**...")
-        from generator.gemini_director import GeminiDirector
-
-        director = GeminiDirector(api_key=api_key, model=raw_model)
+        # ---- STEP 3: Unified AI Synthesis & Presentation Build ----
+        status_box.write(f"🧠 **Step 3:** Synthesizing with **{provider_choice}** ({model_choice})...")
+        director = UnifiedDirector(
+            provider=provider_choice,
+            api_key=api_key,
+            model=model_choice,
+            base_url=base_url,
+        )
 
         output_dir = tempfile.mkdtemp()
         output_path = os.path.join(output_dir, "presentation.pptx")
 
-        # Live callback passes each update directly to the status box
         def on_status_update(message: str):
             status_box.write(f"  {message}")
 
-        result = director.generate_and_build(
-            user_prompt=user_prompt or "Create a comprehensive presentation from the provided content.",
-            youtube_data=youtube_data if youtube_data else None,
-            document_data=document_data if document_data else None,
-            theme=selected_theme,
-            output_path=output_path,
-            max_retries=1,
-            status_callback=on_status_update,
-        )
+        if generation_mode.startswith("Procedural"):
+            result = director.generate_procedural_slides(
+                user_prompt=user_prompt or "Create a comprehensive presentation from the provided content.",
+                youtube_data=youtube_data if youtube_data else None,
+                document_data=document_data if document_data else None,
+                theme=selected_theme,
+                output_path=output_path,
+                status_callback=on_status_update,
+            )
+        else:
+            result = director.generate_template_slides(
+                template_path=selected_template_path,
+                user_prompt=user_prompt or "Create a comprehensive presentation from the provided content.",
+                youtube_data=youtube_data if youtube_data else None,
+                document_data=document_data if document_data else None,
+                output_path=output_path,
+                status_callback=on_status_update,
+            )
 
-        # Update status box verdict
         if result["success"]:
             status_box.update(
                 label=f"🎉 Presentation Ready! ({result['slide_count']} slides generated)",
@@ -311,8 +406,8 @@ if generate_btn and api_key:
                 f'&nbsp; **{result["slide_count"]} slides generated**',
                 unsafe_allow_html=True,
             )
-            st.markdown(f"**Theme:** {theme_choice}")
-            st.markdown(f"**Model Used:** {raw_model}")
+            st.markdown(f"**Engine Mode:** {generation_mode.split('(')[0].strip()}")
+            st.markdown(f"**AI Provider:** {provider_choice} (`{model_choice}`)")
 
         with col_download:
             with open(result["output_path"], "rb") as f:
@@ -325,19 +420,18 @@ if generate_btn and api_key:
                     use_container_width=True,
                 )
 
-        with st.expander("🔍 View Generated Slide Python Code", expanded=False):
-            st.code(result.get("code", ""), language="python")
+        if result.get("code"):
+            with st.expander("🔍 View Generated Slide Python Code", expanded=False):
+                st.code(result.get("code", ""), language="python")
 
     else:
         st.error(f"Generation error: {result.get('error', 'Unknown error')}")
         st.info(
             "💡 **Troubleshooting Tips:**\n"
-            "- If you see `503 UNAVAILABLE`: Google's free servers for that model are busy. Switch to **gemini-2.0-flash** in the sidebar.\n"
-            "- If you see `403 / PERMISSION_DENIED`: Verify your API key at [Google AI Studio](https://aistudio.google.com/apikey)."
+            "- Verify that your API key is valid for the selected provider.\n"
+            "- If using OpenRouter or OpenAI, ensure your account has active credits.\n"
+            "- For Google Gemini, gemini-3.5-flash is the verified high-performance model."
         )
-        if result.get("code"):
-            with st.expander("🔍 Generated Code (before error)", expanded=False):
-                st.code(result.get("code", ""), language="python")
 
 
 # ---------------------------------------------------------------------------
@@ -346,7 +440,7 @@ if generate_btn and api_key:
 st.markdown("---")
 st.markdown(
     '<div style="text-align:center; opacity:0.6; font-size:13px; padding:10px;">'
-    "Context-Aware PPTX Generator • Built with Google Gemini & python-pptx"
+    "Context-Aware PPTX Generator • Supports Google Gemini, OpenRouter, OpenAI & Custom Templates"
     "</div>",
     unsafe_allow_html=True,
 )

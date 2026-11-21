@@ -20,5 +20,6 @@ Thumbs.db
 # Generated outputs
 sample_output.pptx
 *.pptx
+!templates/*.pptx
 streamlit.log
 tmp/
