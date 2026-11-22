@@ -270,6 +270,50 @@ with col_right:
             size_kb = len(f.getvalue()) / 1024
             st.markdown(f"  📎 **{f.name}** ({size_kb:.1f} KB)")
 
+# ---------------------------------------------------------------------------
+# Asset & Graphics Explorer (2,450+ vector graphics)
+# ---------------------------------------------------------------------------
+with st.expander("🖼️ Explore Graphic & Icon Asset Library (2,450+ Vectors Available)", expanded=False):
+    catalog_path = PROJECT_ROOT / "assets" / "catalog.json"
+    if catalog_path.exists():
+        import json
+        with open(catalog_path, "r") as cf:
+            catalog_data = json.load(cf)
+
+        cat_col1, cat_col2 = st.columns([1, 2])
+        with cat_col1:
+            categories = ["All Categories", "Character Illustrations"] + sorted(list(catalog_data.get("categories", {}).keys()))
+            selected_cat = st.selectbox("Category", categories, index=0)
+        with cat_col2:
+            search_query = st.text_input("Search Assets", placeholder="e.g. rocket, brain, server, cloud, dance, money, security...")
+
+        if selected_cat == "Character Illustrations":
+            items = catalog_data.get("characters", [])
+        elif selected_cat == "All Categories":
+            items = catalog_data.get("characters", []) + catalog_data.get("icons", [])
+        else:
+            items = [i for i in catalog_data.get("icons", []) if i.get("category") == selected_cat]
+
+        if search_query:
+            sq = search_query.lower().strip()
+            items = [
+                i for i in items
+                if sq in i.get("name", "").lower()
+                or sq in i.get("description", "").lower()
+                or any(sq in t.lower() for t in i.get("tags", []))
+            ]
+
+        st.caption(f"Showing **{min(len(items), 24)}** of **{len(items)}** matching assets (Total library: **{catalog_data.get('total_assets', 0):,}** vector assets across 11 categories)")
+
+        grid_cols = st.columns(4)
+        for idx, item in enumerate(items[:24]):
+            with grid_cols[idx % 4]:
+                st.markdown(f"**`{item['name']}`**")
+                st.caption(f"📁 {item.get('category')}")
+                st.write(f"_{item.get('description', '')}_")
+
+        st.info("💡 **Pro-Tip:** Mention any icon name (e.g., `icon='rocket'`, `icon='server'`) or character pose (e.g., `pose='meditating'`, `pose='dancing'`) in your prompt, and the AI will automatically include it!")
+
 st.markdown("---")
 
 # ---------------------------------------------------------------------------

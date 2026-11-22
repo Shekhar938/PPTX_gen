@@ -67,15 +67,21 @@ slide = deck.new_slide()
    - Section divider with category badge and large title.
 
 3. **slide.add_character(pose, side="left", speech_bubble="", size=2.5)**
-   - Places a doodle character. Poses: thinking, pointing, celebrating,
-     confused, presenting, reading.
+   - Places a doodle character.
+   - Poses (38+ available): thinking, pointing, celebrating, confused, presenting,
+     reading, chilling, dancing, coffee, meditating, jumping, running, sprinting,
+     strolling, sitting, sittingreading, unboxing, selfie, plant, levitate, groovy,
+     loving, float, doggie, dogjump, clumsy, ballet, icecream, laying, rollerskating, etc.
    - Use speech_bubble for the character to "say" something.
 
 4. **slide.add_bento_cards(cards, columns=0, card_height=0)**
    - Grid of styled cards. Each card is a dict:
      {"title": str, "body": str, "icon": str, "highlight": str}
-   - Available icons: brain, database, shield, lightning, chart_bar, target,
-     star, arrow_up, clock, check_circle, warning, lightbulb, users, code, globe
+   - Over 2,400+ Lucide vector icons are available by name, e.g.:
+     brain, database, shield, lightning, chart_bar, target, star, arrow_up, clock,
+     check_circle, warning, lightbulb, users, code, globe, rocket, server, cloud,
+     cpu, zap, lock, key, terminal, git-branch, heart, dollar-sign, percent,
+     sparkles, file-text, layers, refresh-cw, compass, search, bookmark, eye, etc.
 
 5. **slide.add_stat_banner(metrics)**
    - Row of big-number callouts. Each metric: {"value": str, "label": str}
