@@ -365,9 +365,26 @@ def add_image(
             png_bytes = cairosvg.svg2png(url=image_path)
             return slide.shapes.add_picture(io.BytesIO(png_bytes), l, t, **kwargs)
         except Exception as err:
-            raise RuntimeError(
-                f"Failed to add SVG image '{image_path}'. Direct add and CairoSVG fallback failed: {err}"
-            ) from err
+            import logging
+            logging.getLogger(__name__).warning(
+                "CairoSVG conversion not available for '%s' (%s). Using visual placeholder fallback.",
+                image_path, err,
+            )
+
+        # 4. Graceful Fallback Shape (NEVER crash slide generation if Cairo is missing)
+        fb_w = w if w is not None else Inches(0.5)
+        fb_h = h if h is not None else Inches(0.5)
+        fb_shape = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, l, t, fb_w, fb_h)
+        fb_shape.fill.solid()
+        fb_shape.fill.fore_color.rgb = RGBColor(0x3B, 0x82, 0xF6)
+        fb_shape.line.fill.background()
+        if fb_shape.has_text_frame:
+            p = fb_shape.text_frame.paragraphs[0]
+            p.text = "✦"
+            p.font.size = Pt(10)
+            p.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+            p.alignment = PP_ALIGN.CENTER
+        return fb_shape
 
     # Standard raster formats (PNG, JPG, etc.)
     return slide.shapes.add_picture(image_path, l, t, **kwargs)
